@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комплексное веб-приложение</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .history-item.current {
+            background: rgba(72, 149, 239, 0.3);
+            border-left: 4px solid #4895ef;
+        }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .canvas-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .worker-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        input, select {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .status.success {
+            background: rgba(46, 204, 113, 0.3);
+        }
+
+        .status.error {
+            background: rgba(231, 76, 60, 0.3);
+        }
+
+        .status.processing {
+            background: rgba(52, 152, 219, 0.3);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            min-height: 100px;
+            word-break: break-all;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Комплексное веб-приложение</h1>
+            <p class="subtitle">Демонстрация навигации по истории, интерактивной графики и веб-воркеров</p>
+        </header>
+
+        <div class="content-grid">
+            <!-- Секция истории браузера -->
+            <section class="section">
+                <h2 class="section-title">История браузера</h2>
+                <div class="history-controls">
+                    <button id="backBtn" disabled>
+                        <span>←</span> Назад
+                    </button>
+                    <button id="forwardBtn" disabled>
+                        Вперед <span>→</span>
+                    </button>
+                    <button id="addPageBtn">
+                        <span>+</span> Добавить страницу
+                    </button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- История будет заполняться динамически -->
+                </div>
+            </section>
+
+            <!-- Секция графики и анимации -->
+            <section class="section">
+                <h2 class="section-title">Графика и Анимация</h2>
+                <div class="canvas-container">
+                    <canvas id="animationCanvas" width="500" height="300"></canvas>
+                    <div class="canvas-controls">
+                        <button id="startAnimation">Запустить анимацию</button>
+                        <button id="stopAnimation">Остановить анимацию</button>
+                        <button id="addBall">Добавить шарик</button>
+                        <button id="clearCanvas">Очистить холст</button>
+                        <select id="animationType">
+                            <option value="bounce">Отскоки</option>
+                            <option value="orbit">Орбиты</option>
+                            <option value="wave">Волны</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Секция веб-воркеров -->
+            <section class="section">
+                <h2 class="section-title">Веб-воркеры</h2>
+                <div class="worker-controls">
+                    <div class="input-group">
+                        <label for="workerInput">Введите число для вычисления факториала:</label>
+                        <input type="number" id="workerInput" min="1" max="100" value="25">
+                    </div>
+                    <div class="input-group">
+                        <label for="workerType">Тип вычисления:</label>
+                        <select id="workerType">
+                            <option value="factorial">Факториал</option>
+                            <option value="fibonacci">Числа Фибоначчи</option>
+                            <option value="prime">Простые числа</option>
+                        </select>
+                    </div>
+                    <button id="startWorker">Запустить вычисления</button>
+                    <button id="terminateWorker" disabled>Остановить вычисления</button>
+                    <div class="status" id="workerStatus"></div>
+                    <div class="result" id="workerResult">
+                        Результат появится здесь...
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>Демонстрационное приложение &copy; 2023</p>
+        </footer>
+    </div>
+
+    <script>
+        // 1. История браузера
+        class HistoryManager {
+            constructor() {
+                this.history = [];
+                this.currentIndex = -1;
+                this.historyList = document.getElementById('historyList');
+                this.backBtn = document.getElementById('backBtn');
+                this.forwardBtn = document.getElementById('forwardBtn');
+                this.addPageBtn = document.getElementById('addPageBtn');
+                
+                this.init();
+            }
+            
+            init() {
+                this.backBtn.addEventListener('click', () => this.goBack());
+                this.forwardBtn.addEventListener('click', () => this.goForward());
+                this.addPageBtn.addEventListener('click', () => this.addPage());
+                
+                // Добавляем начальную страницу
+                this.addPage('Главная страница');
+            }
+            
+            addPage(title = null) {
+                // Если мы не в конце истории, удаляем все элементы после текущего
+                if (this.currentIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.currentIndex + 1);
+                }
+                
+                const pageTitle = title || `Страница ${this.history.length + 1}`;
+                this.history.push(pageTitle);
+                this.currentIndex = this.history.length - 1;
+                
+                this.updateHistoryDisplay();
+                this.updateButtons();
+            }
+            
+            goBack() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.updateHistoryDisplay();
+                    this.updateButtons();
+                }
+            }
+            
+            goForward() {
+                if (this.currentIndex < this.history.length - 1) {
+                    this.currentIndex++;
+                    this.updateHistoryDisplay();
+                    this.updateButtons();
+                }
+            }
+            
+            updateHistoryDisplay() {
+                this.historyList.innerHTML = '';
+                
+                this.history.forEach((page, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    if (index === this.currentIndex) {
+                        item.classList.add('current');
+                    }
+                    item.textContent = page;
+                    this.historyList.appendChild(item);
+                });
+            }
+            
+            updateButtons() {
+                this.backBtn.disabled = this.currentIndex <= 0;
+                this.forwardBtn.disabled = this.currentIndex >= this.history.length - 1;
+            }
+        }
+
+        // 2. Графика и анимация
+        class AnimationManager {
+            constructor() {
+                this.canvas = document.getElementById('animationCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.animationId = null;
+                this.balls = [];
+                this.animationType = 'bounce';
+                
+                this.startBtn = document.getElementById('startAnimation');
+                this.stopBtn = document.getElementById('stopAnimation');
+                this.addBallBtn = document.getElementById('addBall');
+                this.clearBtn = document.getElementById('clearCanvas');
+                this.animationTypeSelect = document.getElementById('animationType');
+                
+                this.init();
+            }
+            
+            init() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                this.addBallBtn.addEventListener('click', () => this.addRandomBall());
+                this.clearBtn.addEventListener('click', () => this.clear());
+                this.animationTypeSelect.addEventListener('change', (e) => {
+                    this.animationType = e.target.value;
+                    this.resetAnimation();
+                });
+                
+                // Добавляем начальный шарик
+                this.addBall(100, 100, 20, '#FF6B6B', 2, 2);
+            }
+            
+            addBall(x, y, radius, color, dx, dy) {
+                this.balls.push({
+                    x, y, radius, color, dx, dy,
+                    angle: Math.random() * Math.PI * 2,
+                    orbitRadius: 50 + Math.random() * 100,
+                    orbitSpeed: 0.01 + Math.random() * 0.02,
+                    waveOffset: Math.random() * Math.PI * 2
+                });
+            }
+            
+            addRandomBall() {
+                const radius = 10 + Math.random() * 20;
+                const x = radius + Math.random() * (this.canvas.width - radius * 2);
+                const y = radius + Math.random() * (this.canvas.height - radius * 2);
+                const color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                const dx = (Math.random() - 0.5) * 4;
+                const dy = (Math.random() - 0.5) * 4;
+                
+                this.addBall(x, y, radius, color, dx, dy);
+            }
+            
+            start() {
+                if (this.animationId) return;
+                
+                const animate = () => {
+                    this.animationId = requestAnimationFrame(animate);
+                    this.update();
+                    this.draw();
+                };
+                
+                animate();
+            }
+            
+            stop() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+            }
+            
+            clear() {
+                this.balls = [];
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            resetAnimation() {
+                const wasRunning = this.animationId !== null;
+                this.stop();
+                
+                // Сбрасываем позиции шариков в зависимости от типа анимации
+                this.balls.forEach(ball => {
+                    ball.x = ball.radius + Math.random() * (this.canvas.width - ball.radius * 2);
+                    ball.y = ball.radius + Math.random() * (this.canvas.height - ball.radius * 2);
+                    
+                    if (this.animationType === 'orbit') {
+                        ball.angle = Math.random() * Math.PI * 2;
+                        ball.orbitRadius = 50 + Math.random() * 100;
+                        ball.orbitSpeed = 0.01 + Math.random() * 0.02;
+                    } else if (this.animationType === 'wave') {
+                        ball.waveOffset = Math.random() * Math.PI * 2;
+                    } else {
+                        ball.dx = (Math.random() - 0.5) * 4;
+                        ball.dy = (Math.random() - 0.5) * 4;
+                    }
+                });
+                
+                if (wasRunning) {
+                    this.start();
+                }
+            }
+            
+            update() {
+                this.balls.forEach(ball => {
+                    if (this.animationType === 'bounce') {
+                        // Отскоки от границ
+                        if (ball.x + ball.radius > this.canvas.width || ball.x - ball.radius < 0) {
+                            ball.dx = -ball.dx;
+                        }
+                        
+                        if (ball.y + ball.radius > this.canvas.height || ball.y - ball.radius < 0) {
+                            ball.dy = -ball.dy;
+                        }
+                        
+                        ball.x += ball.dx;
+                        ball.y += ball.dy;
+                    } else if (this.animationType === 'orbit') {
+                        // Орбитальное движение
+                        ball.angle += ball.orbitSpeed;
+                        ball.x = this.canvas.width / 2 + Math.cos(ball.angle) * ball.orbitRadius;
+                        ball.y = this.canvas.height / 2 + Math.sin(ball.angle) * ball.orbitRadius;
+                    } else if (this.animationType === 'wave') {
+                        // Волновое движение
+                        ball.waveOffset += 0.05;
+                        ball.x += Math.sin(ball.waveOffset) * 2;
+                        ball.y = ball.radius + (this.canvas.height - ball.radius * 2) * 
+                                 (0.5 + 0.5 * Math.sin(ball.waveOffset * 0.7));
+                        
+                        if (ball.x > this.canvas.width + ball.radius) {
+                            ball.x = -ball.radius;
+                        }
+                    }
+                });
+            }
+            
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Рисуем фон с градиентом
+                const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                gradient.addColorStop(0, 'rgba(30, 60, 114, 0.3)');
+                gradient.addColorStop(1, 'rgba(42, 82, 152, 0.3)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Рисуем шарики
+                this.balls.forEach(ball => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = ball.color;
+                    this.ctx.fill();
+                    
+                    // Добавляем блик
+                    this.ctx.beginPath();
+                    this.ctx.arc(ball.x - ball.radius * 0.3, ball.y - ball.radius * 0.3, 
+                                ball.radius * 0.4, 0, Math.PI * 2);
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    this.ctx.fill();
+                });
+            }
+        }
+
+        // 3. Веб-воркеры
+        class WorkerManager {
+            constructor() {
+                this.worker = null;
+                this.isProcessing = false;
+                
+                this.startBtn = document.getElementById('startWorker');
+                this.terminateBtn = document.getElementById('terminateWorker');
+                this.input = document.getElementById('workerInput');
+                this.workerType = document.getElementById('workerType');
+                this.status = document.getElementById('workerStatus');
+                this.result = document.getElementById('workerResult');
+                
+                this.init();
+            }
+            
+            init() {
+                this.startBtn.addEventListener('click', () => this.startWorker());
+                this.terminateBtn.addEventListener('click', () => this.terminateWorker());
+            }
+            
+            startWorker() {
+                if (this.isProcessing) {
+                    this.showStatus('Вычисления уже выполняются', 'error');
+                    return;
+                }
+                
+                const inputValue = parseInt(this.input.value);
+                const calculationType = this.workerType.value;
+                
+                if (isNaN(inputValue) || inputValue < 1 || inputValue > 100) {
+                    this.showStatus('Введите число от 1 до 100', 'error');
+                    return;
+                }
+                
+                // Создаем веб-воркер
+                const workerCode = `
+                    self.addEventListener('message', function(e) {
+                        const { type, value } = e.data;
+                        let result;
+                        
+                        if (type === 'factorial') {
+                            result = calculateFactorial(value);
+                        } else if (type === 'fibonacci') {
+                            result = calculateFibonacci(value);
+                        } else if (type === 'prime') {
+                            result = findPrimes(value);
+                        }
+                        
+                        // Имитация долгих вычислений
+                        const start = Date.now();
+                        while (Date.now() - start < 1000) {
+                            // Искусственная задержка
+                        }
+                        
+                        self.postMessage({ result, type, input: value });
+                    });
+                    
+                    function calculateFactorial(n) {
+                        if (n <= 1) return BigInt(1);
+                        return BigInt(n) * calculateFactorial(n - 1);
+                    }
+                    
+                    function calculateFibonacci(n) {
+                        if (n <= 1) return BigInt(n);
+                        let a = BigInt(0), b = BigInt(1);
+                        for (let i = 2; i <= n; i++) {
+                            [a, b] = [b, a + b];
+                        }
+                        return b;
+                    }
+                    
+                    function findPrimes(n) {
+                        const primes = [];
+                        for (let i = 2; i <= n; i++) {
+                            if (isPrime(i)) primes.push(i);
+                        }
+                        return primes;
+                    }
+                    
+                    function isPrime(num) {
+                        for (let i = 2, sqrt = Math.sqrt(num); i <= sqrt; i++) {
+                            if (num % i === 0) return false;
+                        }
+                        return num > 1;
+                    }
+                `;
+                
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                this.worker = new Worker(URL.createObjectURL(blob));
+                
+                this.worker.onmessage = (e) => {
+                    const { result, type, input } = e.data;
+                    this.displayResult(result, type, input);
+                    this.isProcessing = false;
+                    this.terminateBtn.disabled = true;
+                    this.showStatus('Вычисления завершены успешно!', 'success');
+                };
+                
+                this.worker.onerror = (error) => {
+                    this.isProcessing = false;
+                    this.terminateBtn.disabled = true;
+                    this.showStatus('Ошибка в веб-воркере: ' + error.message, 'error');
+                };
+                
+                // Запускаем вычисления
+                this.worker.postMessage({
+                    type: calculationType,
+                    value: inputValue
+                });
+                
+                this.isProcessing = true;
+                this.terminateBtn.disabled = false;
+                this.showStatus('Выполняются вычисления...', 'processing');
+                this.result.textContent = 'Вычисление...';
+            }
+            
+            terminateWorker() {
+                if (this.worker) {
+                    this.worker.terminate();
+                    this.worker = null;
+                    this.isProcessing = false;
+                    this.terminateBtn.disabled = true;
+                    this.showStatus('Вычисления прерваны', 'error');
+                }
+            }
+            
+            displayResult(result, type, input) {
+                let resultText = '';
+                
+                if (type === 'factorial') {
+                    resultText = `Факториал ${input}! = ${result}`;
+                } else if (type === 'fibonacci') {
+                    resultText = `Число Фибоначчи F(${input}) = ${result}`;
+                } else if (type === 'prime') {
+                    resultText = `Простые числа до ${input}: [${result.join(', ')}]`;
+                }
+                
+                this.result.textContent = resultText;
+            }
+            
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = 'status';
+                this.status.classList.add(type);
+            }
+        }
+
+        // Инициализация приложения после загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            const historyManager = new HistoryManager();
+            const animationManager = new AnimationManager();
+            const workerManager = new WorkerManager();
+            
+            // Запускаем анимацию по умолчанию
+            animationManager.start();
+        });
+    </script>
+</body>
+</html>
